@@ -1,0 +1,28 @@
+[package]
+name = "rsa-signature-2017"
+version = "0.0.0"
+edition = "2021"
+license = "MIT OR Apache-2.0"
+resolver = "2"
+
+[dependencies]
+base64 = { version = "0.22", default-features = false, features = ["alloc"] }
+hex = "0.4"
+rand = { version = "0.8", default-features = false, features = ["std", "std_rng"] }
+rand_core = "0.6"
+rsa = { version = "0.9", default-features = false }
+sha2 = { version = "0.10", default-features = false, features = ["oid"] }
+sophia_api = { version = "0.8", default-features = false }
+sophia_c14n = "0.8"
+sophia_inmem = "0.8"
+sophia_iri = { version = "0.8", default-features = false }
+thiserror = "1"
+time = { version = "0.3", default-features = false, features = ["formatting"] }
+
+# `serde` feature
+serde = { version = "1", default-features = false, features = ["derive"], optional = true }
+
+[features]
+default = ["serde", "std"]
+std = []
+serde = ["dep:serde"]
