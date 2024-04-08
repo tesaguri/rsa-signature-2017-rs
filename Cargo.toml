@@ -5,6 +5,11 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 resolver = "2"
 
+[[bin]]
+name = "ldsig2017"
+path = "src/bin/ldsig2017/main.rs"
+required-features = ["bin-ldsig2017"]
+
 [dependencies]
 base64 = { version = "0.22", default-features = false, features = ["alloc"] }
 hex = "0.4"
@@ -20,9 +25,25 @@ thiserror = "1"
 time = { version = "0.3", default-features = false, features = ["formatting"] }
 
 # `serde` feature
+fmt-cmp = { version = "0.1", default-features = false, optional = true }
 serde = { version = "1", default-features = false, features = ["derive"], optional = true }
+
+# `bin-ldsig2017` feature
+anyhow = { version = "1", optional = true }
+clap = { version = "4", features = ["derive"], optional = true }
+json-ld = { version = "0.15", features = ["reqwest"], optional = true }
+json-syntax = { version = "0.9", features = ["serde"], optional = true }
+locspan = { version = "0.7", optional = true }
+pkcs8 = { version = "0.10", optional = true }
+rdf-types = { version = "0.15", optional = true }
+sophia_jsonld = { version = "0.8", optional = true }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+
+[dev-dependencies]
+serde_test = "1"
 
 [features]
 default = ["serde", "std"]
 std = []
-serde = ["dep:serde"]
+serde = ["dep:fmt-cmp", "dep:serde"]
+bin-ldsig2017 = ["dep:anyhow", "dep:clap", "dep:json-ld", "dep:json-syntax", "dep:locspan", "pkcs8/pem", "pkcs8/std", "dep:rdf-types", "serde", "dep:sophia_jsonld"]
