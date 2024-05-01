@@ -1,3 +1,7 @@
+#[cfg(test)]
+#[macro_use]
+pub mod test;
+
 mod crypto;
 
 pub use self::crypto::{gen_nonce, DigestWrite, NeverRng};

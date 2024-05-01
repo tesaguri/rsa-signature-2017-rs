@@ -41,6 +41,7 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 
 [dev-dependencies]
 serde_test = "1"
+sophia_turtle = "0.8"
 
 [features]
 default = ["serde", "std"]

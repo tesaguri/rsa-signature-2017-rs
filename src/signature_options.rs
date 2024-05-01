@@ -151,3 +151,49 @@ impl<'a> SignatureOptions<'a> {
         (ret, created_owned)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::util::test::parse_nq;
+
+    #[test]
+    fn to_dataset() {
+        let options = SignatureOptions {
+            created: Some("2024-01-01T00:00:00Z"),
+            creator: Iri::new("https://example.com/users/1#main-key").unwrap(),
+            domain: Some("https://w3id.org/security#assertionMethod"),
+            nonce: Some("deadbeef12345678"),
+        };
+
+        const EXPECTED: &str = r#"
+            _:b0 <http://purl.org/dc/terms/created> "2024-01-01T00:00:00Z"^^<http://www.w3.org/2001/XMLSchema#dateTime> .
+            _:b0 <http://purl.org/dc/terms/creator> <https://example.com/users/1#main-key> .
+            _:b0 <https://w3id.org/security#domain> "https://w3id.org/security#assertionMethod" .
+            _:b0 <https://w3id.org/security#nonce> "deadbeef12345678" .
+        "#;
+
+        assert_eq_dataset!(options.to_dataset().0, parse_nq(EXPECTED));
+    }
+
+    #[test]
+    fn create_verify_hash() {
+        let options = SignatureOptions {
+            created: Some("2024-01-01T00:00:00Z"),
+            creator: Iri::new("https://example.com/users/1#main-key").unwrap(),
+            domain: Some("https://w3id.org/security#assertionMethod"),
+            nonce: Some("deadbeef12345678"),
+        };
+
+        const DATASET: &str = r#"
+            _:b0 <http://www.w3.org/1999/02/22-rdf-syntax-ns#type> <https://www.w3.org/ns/activitystreams#Note> .
+            _:b0 <https://www.w3.org/ns/activitystreams#content> "Hello, world!" .
+        "#;
+
+        assert_eq!(
+            hex::encode(&options.create_verify_hash(&parse_nq(DATASET)).unwrap().0).to_string(),
+            "b09ad7a64f32905af0ddada6082d9e7af89a001dc6d03b62d983036c9f98161b"
+        );
+    }
+}

@@ -7,13 +7,15 @@ compile_error!(concat!(
     "Please enable `std` crate feature for now"
 ));
 
+#[macro_use]
+mod util;
+
 #[cfg(feature = "serde")]
 pub mod serde;
 
 mod error;
 mod sign;
 mod signature_options;
-mod util;
 
 pub use self::error::Error;
 pub use self::sign::{SignOptions, Signature, SignatureType};
