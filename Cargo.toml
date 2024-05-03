@@ -12,6 +12,7 @@ required-features = ["bin-ldsig2017"]
 
 [dependencies]
 base64 = { version = "0.22", default-features = false, features = ["alloc"] }
+either = "1"
 hex = "0.4"
 rand = { version = "0.8", default-features = false, features = ["std", "std_rng"] }
 rand_core = "0.6"

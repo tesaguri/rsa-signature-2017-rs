@@ -1,14 +1,16 @@
 use std::borrow::Cow;
+use std::time::SystemTime;
 
+use either::Either;
 use rand_core::{CryptoRng, RngCore};
 use rsa::{Pkcs1v15Sign, RsaPrivateKey};
 use sha2::Sha256;
 use sophia_api::dataset::SetDataset;
 use sophia_iri::Iri;
 
-use crate::signature_options::SignatureOptions;
-use crate::util::{gen_nonce, NeverRng};
-use crate::Error;
+use crate::common::{create_verify_hash, SignatureOptions};
+use crate::error::DatasetError;
+use crate::util::{format_iso8601_time, gen_nonce, NeverRng};
 
 #[derive(Debug)]
 #[non_exhaustive]
@@ -51,6 +53,8 @@ pub enum SignatureType {
     RsaSignature2017,
 }
 
+pub type Error<DE> = DatasetError<DE>;
+
 impl<'sig, 'this, R> SignOptions<'sig, 'this, R>
 where
     R: RngCore + CryptoRng,
@@ -92,23 +96,16 @@ where
         self
     }
 
-    /// Signs the given `dataset` with (a variant of) the `RsaSignature2017` algorithm[^1].
-    ///
-    /// Strictly speaking, this uses the RDFC 1.0 canonicalization algorithm instead of the
-    /// GCA2015 algorithm (aka. URDNA2015) used by the original `RsaSignature2017` algorithm. The
-    /// difference between these algorithms is handling of some control characters — Please don't
-    /// give it those characters, thanks!
+    /// Signs the given `dataset` with the `RsaSignature2017` algorithm.
     ///
     /// See also [`Signature::sign_rsa_signature_2017`] function, which is a shorthand for this
     /// method.
-    ///
-    /// [^1]: <https://github.com/w3c-ccg/ld-signatures/blob/d0af56856684924156a94838f9482a27766bb2be/index.html>
     pub fn sign_rsa_signature_2017<D>(
         &mut self,
         dataset: &D,
         key: &RsaPrivateKey,
         creator: Iri<&'sig str>,
-    ) -> Result<Signature<'sig>, Error<D::Error>>
+    ) -> Result<Signature<'sig>, DatasetError<D::Error>>
     where
         D: SetDataset,
     {
@@ -125,25 +122,20 @@ where
             }
         };
 
+        let created = self
+            .created
+            .map(Cow::Borrowed)
+            .unwrap_or_else(|| Cow::Owned(format_iso8601_time(SystemTime::now())));
+
         let options = SignatureOptions {
-            created: self.created,
+            created: &created,
             creator,
             domain: self.domain,
             nonce: nonce.as_deref(),
         };
-        let (to_be_signed, created) = options.create_verify_hash(dataset)?;
-
-        let created = created
-            .map(Cow::Owned)
-            // We guarantee that`self.created` is `Some` when the returned `created` is `None`.
-            // You may wonder why we don't just return a `Cow<'a, str>`, whose `Borrowed` variant
-            // would contain the passed `created`. Well, we cannot do that because doing so would
-            // make the returned `created` value borrow `'a`, which doesn't outlive the local
-            // binding `nonce`. While we could assign different lifetime parameters to `created` and
-            // `nonce` of `SignatureOptions`, I didn't want to expose such ad-hoc lifetime
-            // parameters from `SignatureOptions`, which we might want to make public when
-            // implementing the verification algorithm.
-            .unwrap_or_else(|| Cow::Borrowed(self.created.unwrap()));
+        let to_be_signed = create_verify_hash(dataset, &options.to_dataset())
+            // `LightDataset` returns error only when inserting quads.
+            .map_err(Either::unwrap_left)?;
 
         let padding = Pkcs1v15Sign::new::<Sha256>();
         let signature_value = if let Some(rng) = self.rng.as_deref_mut() {
@@ -180,19 +172,20 @@ impl<'a> Signature<'a> {
     pub fn options<'b>() -> SignOptions<'a, 'b> {
         SignOptions::new()
     }
+}
 
-    /// Shorthand for `<SignOptions>::new().sign_rsa_signature_2017(…)`. See also
-    /// [`SignOptions::sign_rsa_signature_2017`].
-    pub fn sign_rsa_signature_2017<D>(
-        dataset: &D,
-        key: &RsaPrivateKey,
-        creator: Iri<&'a str>,
-    ) -> Result<Self, Error<D::Error>>
-    where
-        D: SetDataset,
-    {
-        <SignOptions<'_, '_>>::new().sign_rsa_signature_2017(dataset, key, creator)
-    }
+/// Shorthand for `<SignOptions>::new().sign_rsa_signature_2017(…)`.
+///
+/// See also [`SignOptions::sign_rsa_signature_2017`].
+pub fn sign_rsa_signature_2017<'a, D>(
+    dataset: &D,
+    key: &RsaPrivateKey,
+    creator: Iri<&'a str>,
+) -> Result<Signature<'a>, Error<D::Error>>
+where
+    D: SetDataset,
+{
+    <SignOptions<'_, '_>>::new().sign_rsa_signature_2017(dataset, key, creator)
 }
 
 #[cfg(feature = "serde")]
