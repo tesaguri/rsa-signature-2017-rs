@@ -25,6 +25,14 @@ sophia_iri = { version = "0.8", default-features = false }
 thiserror = "1"
 time = { version = "0.3", default-features = false, features = ["formatting"] }
 
+# `json-ld` feature
+futures-util = { version = "0.3", default-features = false, features = ["alloc"], optional = true }
+json-ld = { version = "0.15", features = ["reqwest"], optional = true }
+json-syntax = { version = "0.9", features = ["serde"], optional = true }
+locspan = { version = "0.7", optional = true }
+rdf-types = { version = "0.15", optional = true }
+sophia_jsonld = { version = "0.8", optional = true }
+
 # `serde` feature
 fmt-cmp = { version = "0.1", default-features = false, optional = true }
 serde = { version = "1", default-features = false, features = ["derive"], optional = true }
@@ -32,20 +40,17 @@ serde = { version = "1", default-features = false, features = ["derive"], option
 # `bin-ldsig2017` feature
 anyhow = { version = "1", optional = true }
 clap = { version = "4", features = ["derive"], optional = true }
-json-ld = { version = "0.15", features = ["reqwest"], optional = true }
-json-syntax = { version = "0.9", features = ["serde"], optional = true }
-locspan = { version = "0.7", optional = true }
 pkcs8 = { version = "0.10", optional = true }
-rdf-types = { version = "0.15", optional = true }
-sophia_jsonld = { version = "0.8", optional = true }
 tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
 
 [dev-dependencies]
+futures-executor = "0.3"
 serde_test = "1"
 sophia_turtle = "0.8"
 
 [features]
-default = ["serde", "std"]
+default = ["json-ld", "serde", "std"]
 std = []
+json-ld = ["dep:futures-util", "dep:json-ld", "dep:json-syntax", "dep:locspan", "dep:rdf-types", "dep:sophia_jsonld"]
 serde = ["dep:fmt-cmp", "dep:serde"]
-bin-ldsig2017 = ["dep:anyhow", "dep:clap", "dep:json-ld", "dep:json-syntax", "dep:locspan", "pkcs8/pem", "pkcs8/std", "dep:rdf-types", "serde", "dep:sophia_jsonld"]
+bin-ldsig2017 = ["dep:anyhow", "dep:clap", "json-ld", "pkcs8/pem", "pkcs8/std", "serde"]

@@ -1,3 +1,5 @@
+pub mod consts;
+
 use std::io::Write;
 
 use either::Either;
@@ -23,12 +25,6 @@ pub struct SignatureOptions<'a> {
 
 impl<'a> SignatureOptions<'a> {
     pub fn to_dataset(&self) -> LightDataset {
-        const CREATED: MownStr<'_> = MownStr::from_str("http://purl.org/dc/terms/created");
-        const CREATOR: MownStr<'_> = MownStr::from_str("http://purl.org/dc/terms/creator");
-        const DOMAIN: MownStr<'_> = MownStr::from_str("https://w3id.org/security#domain");
-        const NONCE: MownStr<'_> = MownStr::from_str("https://w3id.org/security#nonce");
-        const DATETIME: MownStr<'_> =
-            MownStr::from_str("http://www.w3.org/2001/XMLSchema#dateTime");
         const ID: MownStr<'_> = MownStr::from_str("b0");
 
         let mut ret = LightDataset::new();
@@ -37,14 +33,17 @@ impl<'a> SignatureOptions<'a> {
         // are inserted.
         ret.insert(
             BnodeId::new_unchecked(ID),
-            IriRef::new_unchecked(CREATED),
-            SimpleTerm::LiteralDatatype(self.created.into(), IriRef::new_unchecked(DATETIME)),
+            IriRef::new_unchecked(consts::CREATED),
+            SimpleTerm::LiteralDatatype(
+                self.created.into(),
+                IriRef::new_unchecked(consts::DATETIME),
+            ),
             None::<&'static SimpleTerm<'_>>,
         )
         .unwrap();
         ret.insert(
             BnodeId::new_unchecked(ID),
-            IriRef::new_unchecked(CREATOR),
+            IriRef::new_unchecked(consts::CREATOR),
             self.creator,
             None::<&'static SimpleTerm<'_>>,
         )
@@ -52,7 +51,7 @@ impl<'a> SignatureOptions<'a> {
         if let Some(domain) = self.domain {
             ret.insert(
                 BnodeId::new_unchecked(ID),
-                IriRef::new_unchecked(DOMAIN),
+                IriRef::new_unchecked(consts::DOMAIN),
                 domain,
                 None::<&'static SimpleTerm<'_>>,
             )
@@ -61,7 +60,7 @@ impl<'a> SignatureOptions<'a> {
         if let Some(nonce) = self.nonce {
             ret.insert(
                 BnodeId::new_unchecked(ID),
-                IriRef::new_unchecked(NONCE),
+                IriRef::new_unchecked(consts::NONCE),
                 nonce,
                 None::<&'static SimpleTerm<'_>>,
             )

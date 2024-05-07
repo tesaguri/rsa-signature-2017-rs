@@ -1,7 +1,3 @@
-// XXX: Required to make the `json!` macro happy.
-// Unfortunately, it's very slow to compile.
-#![recursion_limit = "512"]
-
 mod cmd;
 mod common;
 

@@ -1,6 +1,8 @@
+use core::fmt::{self, Debug, Formatter};
 use std::borrow::Cow;
 use std::time::SystemTime;
 
+use base64::display::Base64Display;
 use either::Either;
 use rand_core::{CryptoRng, RngCore};
 use rsa::{Pkcs1v15Sign, RsaPrivateKey};
@@ -11,6 +13,7 @@ use sophia_iri::Iri;
 use crate::common::{create_verify_hash, SignatureOptions};
 use crate::error::DatasetError;
 use crate::util::{format_iso8601_time, gen_nonce, NeverRng};
+use crate::SignatureType;
 
 #[derive(Debug)]
 #[non_exhaustive]
@@ -25,7 +28,6 @@ pub struct SignOptions<'sig, 'this, R = NeverRng> {
     pub rng: Option<&'this mut R>,
 }
 
-#[derive(Debug)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "camelCase"))]
 pub struct Signature<'a> {
@@ -44,13 +46,6 @@ pub struct Signature<'a> {
     pub nonce: Option<Cow<'a, str>>,
     #[cfg_attr(feature = "serde", serde(serialize_with = "serialize_bytes_base64"))]
     pub signature_value: Vec<u8>,
-}
-
-#[derive(Debug)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize))]
-#[non_exhaustive]
-pub enum SignatureType {
-    RsaSignature2017,
 }
 
 pub type Error<DE> = DatasetError<DE>;
@@ -174,6 +169,31 @@ impl<'a> Signature<'a> {
     }
 }
 
+impl<'a> Debug for Signature<'a> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        struct Base64Debug<'a>(&'a [u8]);
+
+        impl<'a> Debug for Base64Debug<'a> {
+            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+                write!(
+                    f,
+                    "\"{}\"",
+                    Base64Display::new(self.0, &base64::engine::general_purpose::STANDARD)
+                )
+            }
+        }
+
+        f.debug_struct("Signature")
+            .field("kind", &self.kind)
+            .field("created", &self.created)
+            .field("creator", &self.creator)
+            .field("domain", &self.domain)
+            .field("nonce", &self.nonce)
+            .field("signature_value", &Base64Debug(&self.signature_value))
+            .finish()
+    }
+}
+
 /// Shorthand for `<SignOptions>::new().sign_rsa_signature_2017(…)`.
 ///
 /// See also [`SignOptions::sign_rsa_signature_2017`].
@@ -203,11 +223,9 @@ where
 
     let mut seq = serializer.serialize_seq(Some(2))?;
     // The LD Signatures spec used the context URL of <https://w3id.org/identity/v1>, which is now a
-    // dead link. Although its former content is available at
-    // <https://github.com/web-payments/web-payments.org/blob/2faef4c/contexts/identity-v1.jsonld>
-    // and many implementations treat the context as already retrieved, the terms used by LD
-    // Signatures are defined in the Security Vocabulary context as well, and I think it's safer to
-    // use the latter.
+    // dead link. Although many implementations treat the context as already retrieved, the terms
+    // used by LD Signatures are defined in the Security Vocabulary context as well, and I think
+    // it's safer to use the latter.
     seq.serialize_element("https://w3id.org/security/v1")?;
     seq.serialize_element(&InlineContext {
         // Required to make the `"type": "RsaSignature2017"` entry properly expand to
@@ -224,8 +242,6 @@ where
     T: AsRef<[u8]>,
     S: serde::Serializer,
 {
-    use base64::display::Base64Display;
-
     serializer.collect_str(&Base64Display::new(
         bytes.as_ref(),
         &base64::engine::general_purpose::STANDARD,

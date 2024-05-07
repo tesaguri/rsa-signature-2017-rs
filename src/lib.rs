@@ -25,6 +25,8 @@ compile_error!(concat!(
 mod util;
 
 pub mod error;
+#[cfg(feature = "json-ld")]
+pub mod json_ld;
 #[cfg(feature = "serde")]
 pub mod serde;
 pub mod sign;
@@ -32,8 +34,15 @@ pub mod verify;
 
 mod common;
 
-pub use self::sign::{sign_rsa_signature_2017, SignOptions, Signature, SignatureType};
+pub use self::sign::{sign_rsa_signature_2017, SignOptions, Signature};
 pub use self::verify::verify_rsa_signature_2017;
+
+#[derive(Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(::serde::Serialize))]
+#[non_exhaustive]
+pub enum SignatureType {
+    RsaSignature2017,
+}
 
 #[cfg(test)]
 mod tests {
@@ -42,6 +51,7 @@ mod tests {
 
     use crate::common::SignatureOptions;
     use crate::util::test::parse_nq;
+    use crate::SignOptions;
 
     use super::*;
 
@@ -66,7 +76,11 @@ mod tests {
         .unwrap();
         let creator = Iri::new("https://example.com/#me").unwrap();
 
-        let signature = sign_rsa_signature_2017(&dataset, &key, creator).unwrap();
+        let signature = <SignOptions<'_, '_>>::new()
+            .created("2024-01-01T00:00:00Z")
+            .nonce(Some("deadbeef12345678"))
+            .sign_rsa_signature_2017(&dataset, &key, creator)
+            .unwrap();
 
         let options = SignatureOptions {
             created: &signature.created,

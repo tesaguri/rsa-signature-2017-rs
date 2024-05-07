@@ -6,15 +6,18 @@ use std::sync::Arc;
 
 use anyhow::Context as _;
 use clap::builder::{StringValueParser, TypedValueParser};
+use json_ld::ReqwestLoader;
 use json_syntax::Parse as _;
+use rsa_signature_2017::json_ld::loader::PreloadedLoader;
 use rsa_signature_2017::Signature;
 use sophia_api::dataset::CollectibleDataset;
 use sophia_inmem::dataset::LightDataset;
 use sophia_iri::Iri;
+use sophia_jsonld::loader::ChainLoader;
 use sophia_jsonld::vocabulary::ArcIri;
 use sophia_jsonld::{JsonLdOptions, JsonLdParser};
 
-use crate::common::{read_rsa_private_key_file, JsonLdLoader, KeyFormat};
+use crate::common::{read_rsa_private_key_file, KeyFormat};
 
 #[derive(clap::Args)]
 pub struct Args {
@@ -84,11 +87,11 @@ pub async fn main(args: Args) -> anyhow::Result<()> {
 
         let document = json_ld::RemoteDocument::new(None, None, json);
 
-        let quads = JsonLdParser::new_with_options(
-            JsonLdOptions::new().with_default_document_loader::<JsonLdLoader<ArcIri>>(),
-        )
-        .parse_json(&document)
-        .await;
+        let json_ld_options = JsonLdOptions::new()
+            .with_default_document_loader::<ChainLoader<PreloadedLoader, ReqwestLoader<ArcIri>>>();
+        let quads = JsonLdParser::new_with_options(json_ld_options)
+            .parse_json(&document)
+            .await;
         let dataset = LightDataset::from_quad_source(quads)?;
 
         let signature = sign_options
