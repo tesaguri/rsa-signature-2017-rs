@@ -1,3 +1,6 @@
+#![warn(rust_2018_idioms)]
+#![forbid(unsafe_op_in_unsafe_fn)]
+
 mod cmd;
 mod common;
 

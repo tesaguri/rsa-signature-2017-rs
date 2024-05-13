@@ -3,8 +3,7 @@ pub mod consts;
 use std::io::Write;
 
 use either::Either;
-use sha2::digest::generic_array::GenericArray;
-use sha2::digest::OutputSizeUser;
+use sha2::digest::Output;
 use sha2::{Digest, Sha256};
 use sophia_api::dataset::{MutableDataset, SetDataset};
 use sophia_api::term::{BnodeId, SimpleTerm};
@@ -72,13 +71,11 @@ impl<'a> SignatureOptions<'a> {
 }
 
 /// Performs the Create Verify Hash Algorithm of the spec and returns its output.
+#[allow(clippy::type_complexity)]
 pub fn create_verify_hash<D, O>(
     dataset: &D,
     options: &O,
-) -> Result<
-    GenericArray<u8, <Sha256 as OutputSizeUser>::OutputSize>,
-    Either<DatasetError<D::Error>, DatasetError<O::Error>>,
->
+) -> Result<Output<Sha256>, Either<DatasetError<D::Error>, DatasetError<O::Error>>>
 where
     D: SetDataset,
     O: SetDataset,
@@ -103,7 +100,12 @@ where
         rdfc10::normalize(options, DigestWrite::new(hasher))
             .map_err(DatasetError::from_c14n_error)?;
         let output = hasher.finalize_reset();
-        write!(DigestWrite::new(to_be_signed), "{}", hex::encode(&output)).unwrap();
+        write!(
+            DigestWrite::new(to_be_signed),
+            "{}",
+            hex::encode(output.as_slice())
+        )
+        .unwrap();
         Ok(())
     }
 
@@ -112,15 +114,12 @@ where
 
     return Ok(finalize(to_be_signed, hasher));
 
-    fn finalize(
-        mut to_be_signed: Sha256,
-        document_hasher: Sha256,
-    ) -> GenericArray<u8, <Sha256 as OutputSizeUser>::OutputSize> {
+    fn finalize(mut to_be_signed: Sha256, document_hasher: Sha256) -> Output<Sha256> {
         let mut digest = document_hasher.finalize();
         write!(
             DigestWrite::new(&mut to_be_signed),
             "{}",
-            hex::encode(&digest)
+            hex::encode(digest.as_slice())
         )
         .unwrap();
 

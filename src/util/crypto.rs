@@ -46,7 +46,7 @@ impl RngCore for NeverRng {
 
 impl CryptoRng for NeverRng {}
 
-pub fn gen_nonce<'a, R: RngCore + CryptoRng>(rng: &mut R) -> String {
+pub fn gen_nonce<R: RngCore + CryptoRng>(rng: &mut R) -> String {
     pub const ENCODED_LEN: usize = 20;
     let mut rand = [0_u8; ENCODED_LEN * 3 / 4];
     rng.fill_bytes(&mut rand);

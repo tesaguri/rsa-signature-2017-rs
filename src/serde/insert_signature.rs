@@ -157,9 +157,9 @@ impl<'a, T: Serialize> Serialize for InsertSignature<'a, T> {
                 ErrorFactory::new().visit_none().map_err(into_ser_error)
             }
 
-            fn serialize_some<T: ?Sized>(self, v: &T) -> Result<Self::Ok, Self::Error>
+            fn serialize_some<T>(self, v: &T) -> Result<Self::Ok, Self::Error>
             where
-                T: Serialize,
+                T: Serialize + ?Sized,
             {
                 v.serialize(self)
             }
@@ -187,24 +187,30 @@ impl<'a, T: Serialize> Serialize for InsertSignature<'a, T> {
                 )))
             }
 
-            fn serialize_newtype_struct<T: ?Sized>(
+            fn serialize_newtype_struct<T>(
                 self,
                 _: &'static str,
                 _: &T,
-            ) -> Result<Self::Ok, Self::Error> {
+            ) -> Result<Self::Ok, Self::Error>
+            where
+                T: ?Sized,
+            {
                 Err(into_ser_error(de::Error::invalid_type(
                     Unexpected::NewtypeStruct,
                     &ErrorFactory::<Self::Ok>::new(),
                 )))
             }
 
-            fn serialize_newtype_variant<T: ?Sized>(
+            fn serialize_newtype_variant<T>(
                 self,
                 _: &'static str,
                 _: u32,
                 _: &'static str,
                 _: &T,
-            ) -> Result<Self::Ok, Self::Error> {
+            ) -> Result<Self::Ok, Self::Error>
+            where
+                T: ?Sized,
+            {
                 Err(into_ser_error(de::Error::invalid_type(
                     Unexpected::NewtypeVariant,
                     &ErrorFactory::<Self::Ok>::new(),
@@ -262,7 +268,10 @@ impl<'a, T: Serialize> Serialize for InsertSignature<'a, T> {
                 )))
             }
 
-            fn collect_str<T: ?Sized>(self, _: &T) -> Result<Self::Ok, Self::Error> {
+            fn collect_str<T>(self, _: &T) -> Result<Self::Ok, Self::Error>
+            where
+                T: ?Sized,
+            {
                 Err(into_ser_error(de::Error::invalid_type(
                     Unexpected::Other("string"),
                     &ErrorFactory::<Self::Ok>::new(),
@@ -274,9 +283,9 @@ impl<'a, T: Serialize> Serialize for InsertSignature<'a, T> {
             type Ok = S::Ok;
             type Error = S::Error;
 
-            fn serialize_key<T: ?Sized>(&mut self, key: &T) -> Result<(), Self::Error>
+            fn serialize_key<T>(&mut self, key: &T) -> Result<(), Self::Error>
             where
-                T: Serialize,
+                T: Serialize + ?Sized,
             {
                 if key.serialize(EqSignature).is_ok() {
                     self.skip_next_value = true;
@@ -286,9 +295,9 @@ impl<'a, T: Serialize> Serialize for InsertSignature<'a, T> {
                 }
             }
 
-            fn serialize_value<T: ?Sized>(&mut self, value: &T) -> Result<(), Self::Error>
+            fn serialize_value<T>(&mut self, value: &T) -> Result<(), Self::Error>
             where
-                T: Serialize,
+                T: Serialize + ?Sized,
             {
                 if self.skip_next_value {
                     self.skip_next_value = false;
@@ -298,14 +307,10 @@ impl<'a, T: Serialize> Serialize for InsertSignature<'a, T> {
                 }
             }
 
-            fn serialize_entry<K: ?Sized, V: ?Sized>(
-                &mut self,
-                key: &K,
-                value: &V,
-            ) -> Result<(), Self::Error>
+            fn serialize_entry<K, V>(&mut self, key: &K, value: &V) -> Result<(), Self::Error>
             where
-                K: Serialize,
-                V: Serialize,
+                K: Serialize + ?Sized,
+                V: Serialize + ?Sized,
             {
                 if key.serialize(EqSignature).is_ok() {
                     Ok(())
@@ -324,13 +329,13 @@ impl<'a, T: Serialize> Serialize for InsertSignature<'a, T> {
             type Ok = S::Ok;
             type Error = S::Error;
 
-            fn serialize_field<T: ?Sized>(
+            fn serialize_field<T>(
                 &mut self,
                 key: &'static str,
                 value: &T,
             ) -> Result<(), Self::Error>
             where
-                T: Serialize,
+                T: Serialize + ?Sized,
             {
                 match key {
                     "signature" => Ok(()),
@@ -400,9 +405,9 @@ impl ser::Serializer for EqSignature {
         }
     }
 
-    fn collect_str<T: ?Sized>(self, v: &T) -> Result<Self::Ok, Self::Error>
+    fn collect_str<T>(self, v: &T) -> Result<Self::Ok, Self::Error>
     where
-        T: Display,
+        T: Display + ?Sized,
     {
         if fmt_cmp::eq(v, "signature") {
             Ok(())
@@ -471,9 +476,9 @@ impl ser::Serializer for EqSignature {
         Err(fmt::Error)
     }
 
-    fn serialize_some<T: ?Sized>(self, v: &T) -> Result<Self::Ok, Self::Error>
+    fn serialize_some<T>(self, v: &T) -> Result<Self::Ok, Self::Error>
     where
-        T: Serialize,
+        T: Serialize + ?Sized,
     {
         v.serialize(EqSignature)
     }
@@ -495,21 +500,23 @@ impl ser::Serializer for EqSignature {
         Err(fmt::Error)
     }
 
-    fn serialize_newtype_struct<T: ?Sized>(
-        self,
-        _: &'static str,
-        _: &T,
-    ) -> Result<Self::Ok, Self::Error> {
+    fn serialize_newtype_struct<T>(self, _: &'static str, _: &T) -> Result<Self::Ok, Self::Error>
+    where
+        T: ?Sized,
+    {
         Err(fmt::Error)
     }
 
-    fn serialize_newtype_variant<T: ?Sized>(
+    fn serialize_newtype_variant<T>(
         self,
         _: &'static str,
         _: u32,
         _: &'static str,
         _: &T,
-    ) -> Result<Self::Ok, Self::Error> {
+    ) -> Result<Self::Ok, Self::Error>
+    where
+        T: ?Sized,
+    {
         Err(fmt::Error)
     }
 

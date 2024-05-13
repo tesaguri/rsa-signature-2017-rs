@@ -47,11 +47,9 @@ pub async fn main(args: Args) -> anyhow::Result<()> {
 
     let placeholder_iri = Iri::new_unchecked(Arc::from("urn:x-placeholder"));
 
-    let mut path_buf;
     let mut inputs = args.input.iter();
     let mut path = if let Some(input) = inputs.next() {
-        path_buf = input;
-        &path_buf
+        input
     } else {
         Path::new("-")
     };
@@ -60,7 +58,7 @@ pub async fn main(args: Args) -> anyhow::Result<()> {
     sign_options.created(args.created.as_deref()).nonce(
         args.nonce
             .as_ref()
-            .map(|nonce| (!nonce.is_empty()).then(|| nonce.as_str())),
+            .map(|nonce| (!nonce.is_empty()).then_some(nonce.as_str())),
     );
 
     loop {
@@ -115,8 +113,7 @@ pub async fn main(args: Args) -> anyhow::Result<()> {
         println!("{}", json);
 
         if let Some(input) = inputs.next() {
-            path_buf = input;
-            path = &path_buf;
+            path = input;
         } else {
             break;
         }
